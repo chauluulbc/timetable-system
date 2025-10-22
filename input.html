@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Semester Setup</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+  <div class="bg-white shadow-lg rounded-2xl p-6 w-full max-w-3xl">
+    <h1 class="text-2xl font-bold mb-4 text-indigo-700">Semester Information</h1>
+
+    <div class="space-y-3">
+      <input id="semester-name" placeholder="Semester Name (e.g., Class-Name-1 & Class-Name-2)" class="w-full border rounded-lg p-2">
+      <div class="flex gap-2">
+        <input id="week0" type="date" class="border rounded-lg p-2 w-1/2" placeholder="Week 0 start date">
+        <input id="week12" type="date" class="border rounded-lg p-2 w-1/2" placeholder="Week 12 start date">
+      </div>
+    </div>
+
+    <h2 class="text-lg font-semibold mt-6 mb-2 text-gray-700">Add Class / Course</h2>
+    <div id="course-list" class="space-y-4"></div>
+
+    <button id="add-course" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">+ Add Course</button>
+
+    <button id="generate" class="mt-6 w-full py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700">Generate Schedule</button>
+  </div>
+
+<script>
+function createCourseBlock(){
+  const div=document.createElement('div');
+  div.className='border rounded-lg p-4 bg-gray-50';
+  div.innerHTML=`
+    <input placeholder="Course Name" class="border rounded p-2 w-full mb-2 course">
+    <input placeholder="Activity Type (Lecture, Lab...)" class="border rounded p-2 w-full mb-2 activity">
+    <input placeholder="Activity Group" class="border rounded p-2 w-full mb-2 group">
+    <select class="border rounded p-2 w-full mb-2 day">
+      <option value="">Day of Week</option>
+      <option value="0">Monday</option>
+      <option value="1">Tuesday</option>
+      <option value="2">Wednesday</option>
+      <option value="3">Thursday</option>
+      <option value="4">Friday</option>
+      <option value="5">Saturday</option>
+      <option value="6">Sunday</option>
+    </select>
+    <input placeholder="Start Time (e.g. 11:11)" class="border rounded p-2 w-full mb-2 start">
+    <input placeholder="Duration (minutes)" type="number" class="border rounded p-2 w-full mb-2 duration">
+    <textarea placeholder="Weeks (e.g. 22/11-1/11, 2/11-22/2)" class="border rounded p-2 w-full mb-2 range"></textarea>
+  `;
+  return div;
+}
+
+document.getElementById('add-course').addEventListener('click',()=>{
+  document.getElementById('course-list').appendChild(createCourseBlock());
+});
+
+document.getElementById('generate').addEventListener('click',()=>{
+  const semester={
+    name:document.getElementById('semester-name').value,
+    week0:document.getElementById('week0').value,
+    week12:document.getElementById('week12').value,
+    courses:[...document.querySelectorAll('#course-list>div')].map(div=>{
+      return {
+        course:div.querySelector('.course').value,
+        activityType:div.querySelector('.activity').value,
+        activityGroup:div.querySelector('.group').value,
+        day:+div.querySelector('.day').value,
+        start:div.querySelector('.start').value,
+        duration:+div.querySelector('.duration').value,
+        ranges:div.querySelector('.range').value.split(',').map(r=>{
+          const [s,e]=r.trim().split('-');
+          if(!s||!e)return null;
+          const p=d=>{const [dd,mm]=d.trim().split('/');return `${new Date().getFullYear()}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`};
+          return [p(s),p(e)];
+        }).filter(Boolean)
+      };
+    })
+  };
+  localStorage.setItem('semesterData',JSON.stringify(semester));
+  window.location.href='schedule.html';
+});
+
+// Prefill from localStorage
+window.onload=()=>{
+  const saved=JSON.parse(localStorage.getItem('semesterData'));
+  if(saved){
+    document.getElementById('semester-name').value=saved.name||'';
+    document.getElementById('week0').value=saved.week0||'';
+    document.getElementById('week12').value=saved.week12||'';
+    saved.courses?.forEach(c=>{
+      const block=createCourseBlock();
+      block.querySelector('.course').value=c.course;
+      block.querySelector('.activity').value=c.activityType;
+      block.querySelector('.group').value=c.activityGroup;
+      block.querySelector('.day').value=c.day;
+      block.querySelector('.start').value=c.start;
+      block.querySelector('.duration').value=c.duration;
+      block.querySelector('.range').value=c.ranges.map(r=>{
+        const [s,e]=r.map(d=>{
+          const [y,m,dn]=d.split('-');
+          return `${dn}/${m}`;
+        });
+        return `${s}-${e}`;
+      }).join(', ');
+      document.getElementById('course-list').appendChild(block);
+    });
+  } else {
+    document.getElementById('course-list').appendChild(createCourseBlock());
+  }
+};
+</script>
+</body>
+</html>
