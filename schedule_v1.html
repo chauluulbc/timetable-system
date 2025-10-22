@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Weekly Timetable</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+  <div class="w-full max-w-5xl bg-white shadow-lg rounded-2xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h1 id="semester-title" class="text-2xl font-bold text-indigo-700"></h1>
+      <button id="back" class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">← Edit Input</button>
+    </div>
+
+    <div class="flex gap-2 mb-6">
+      <button id="tab-weekly" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Weekly View</button>
+      <button id="tab-calendar" class="px-4 py-2 bg-white border rounded-xl">Calendar View</button>
+    </div>
+
+    <div id="view-weekly"></div>
+    <div id="view-calendar" class="hidden"></div>
+
+    <footer class="text-gray-500 text-sm mt-6" id="footer-dates"></footer>
+  </div>
+
+<script>
+const semester=JSON.parse(localStorage.getItem('semesterData'));
+if(!semester) window.location.href='input.html';
+
+document.getElementById('semester-title').textContent=`${semester.name}`;
+document.getElementById('footer-dates').textContent=`Week 0: ${semester.week0} | Week 12: ${semester.week12}`;
+
+document.getElementById('back').addEventListener('click',()=>window.location.href='input.html');
+
+const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+function buildWeekly(){
+  const c=document.getElementById('view-weekly'); c.innerHTML='';
+  const grid=document.createElement('div');
+  grid.className='grid grid-cols-7 gap-4';
+  for(let i=0;i<7;i++){
+    const col=document.createElement('div');
+    col.className='p-3 border rounded-xl bg-gray-50';
+    const h=document.createElement('h2');
+    h.className='font-semibold mb-2 text-indigo-700';
+    h.textContent=days[i];
+    col.appendChild(h);
+    const list=semester.courses.filter(e=>e.day===i);
+    if(list.length===0){
+      col.innerHTML+='<p class="text-gray-400 text-sm">No class</p>';
+    } else list.forEach(ev=>{
+      const div=document.createElement('div');
+      div.className='bg-indigo-100 border-l-4 border-indigo-600 p-2 mb-2 rounded';
+      div.innerHTML=`<div class="font-medium">${ev.course}</div>
+        <div class="text-sm">${ev.activityType} ${ev.activityGroup}</div>
+        <div class="text-xs">${ev.start} (${ev.duration} min)</div>`;
+      col.appendChild(div);
+    });
+    grid.appendChild(col);
+  }
+  c.appendChild(grid);
+}
+
+function buildCalendar(){
+  const c=document.getElementById('view-calendar'); c.innerHTML='';
+  const start=new Date(semester.week0);
+  const totalWeeks=13;
+  for(let w=0;w<totalWeeks;w++){
+    const weekDiv=document.createElement('div');
+    weekDiv.className='mb-6';
+    const weekLabel=document.createElement('h2');
+    weekLabel.className='font-semibold text-lg text-indigo-700 mb-2';
+    weekLabel.textContent=`Week ${w}`;
+    weekDiv.appendChild(weekLabel);
+    const grid=document.createElement('div');
+    grid.className='grid grid-cols-7 gap-2';
+    for(let d=0;d<7;d++){
+      const cell=document.createElement('div');
+      cell.className='border rounded p-2 text-sm bg-gray-50';
+      const date=new Date(start); date.setDate(start.getDate()+w*7+d);
+      const dateStr=date.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
+      cell.innerHTML=`<div class="text-xs text-gray-500 mb-1">${days[d]} (${dateStr})</div>`;
+      const list=semester.courses.filter(ev=>{
+        return ev.ranges.some(([s,e])=>new Date(s)<=date && date<=new Date(e)) && ev.day===d;
+      });
+      list.forEach(ev=>{
+        const evDiv=document.createElement('div');
+        evDiv.className='bg-indigo-100 border-l-4 border-indigo-600 p-1 mb-1 rounded';
+        evDiv.innerHTML=`<div class="font-medium">${ev.course}</div><div class="text-xs">${ev.activityType} ${ev.activityGroup}</div><div class="text-xs">${ev.start}</div>`;
+        cell.appendChild(evDiv);
+      });
+      grid.appendChild(cell);
+    }
+    weekDiv.appendChild(grid);
+    c.appendChild(weekDiv);
+  }
+}
+
+document.getElementById('tab-weekly').onclick=()=>{
+  document.getElementById('view-weekly').classList.remove('hidden');
+  document.getElementById('view-calendar').classList.add('hidden');
+  document.getElementById('tab-weekly').classList.add('bg-indigo-600','text-white');
+  document.getElementById('tab-calendar').classList.remove('bg-indigo-600','text-white');
+};
+document.getElementById('tab-calendar').onclick=()=>{
+  document.getElementById('view-weekly').classList.add('hidden');
+  document.getElementById('view-calendar').classList.remove('hidden');
+  document.getElementById('tab-calendar').classList.add('bg-indigo-600','text-white');
+  document.getElementById('tab-weekly').classList.remove('bg-indigo-600','text-white');
+};
+
+buildWeekly();
+buildCalendar();
+</script>
+</body>
+</html>
